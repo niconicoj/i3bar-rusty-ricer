@@ -35,13 +35,13 @@ fn os_info(sys: &sysinfo::System) -> StatusLine {
     match sys.get_long_os_version() {
         Some(os) => StatusLine {
             full_text: os,
-            color: "#7daea3".to_string(),
+            color: Color::RED.to_string(),
             min_width: None,
             align: None,
         },
         None => StatusLine {
             full_text: "error".to_string(),
-            color: "#ea6962".to_string(),
+            color: Color::RED.to_string(),
             min_width: None,
             align: None,
         },
@@ -54,13 +54,7 @@ fn cpu_usage(sys: &mut sysinfo::System) -> StatusLine {
     let load = sys.get_global_processor_info().get_cpu_usage();
     StatusLine {
         full_text: format!(" : {:>5.1} %", load),
-        color: match load.partial_cmp(&50.0) {
-            Some(Ordering::Less) => OK_COLOR.to_string(),
-            _ => match load.partial_cmp(&90.0) {
-                Some(Ordering::Less) => WARN_COLOR.to_string(),
-                _ => ERR_COLOR.to_string(),
-            },
-        },
+        color: Color::GREEN.to_string(),
         min_width: None,
         align: None,
     }
@@ -73,11 +67,11 @@ fn memory_usage(sys: &mut sysinfo::System) -> StatusLine {
 
     StatusLine {
         full_text: format!(
-            " : {:.1}G / {:.1}G",
+            " : {:.1}G / {:.1}G",
             usage as f64 / 1000000.0,
             total as f64 / 1000000.0
         ),
-        color: OK_COLOR.to_string(),
+        color: Color::YELLOW.to_string(),
         min_width: None,
         align: None,
     }
@@ -98,7 +92,7 @@ fn storage_info(sys: &mut sysinfo::System) -> Vec<StatusLine> {
                 (disk.get_total_space() - disk.get_available_space()) as f64 / 1000000000.0,
                 disk.get_total_space() as f64 / 1000000000.0
             ),
-            color: OK_COLOR.to_string(),
+            color: Color::BLUE.to_string(),
             min_width: None,
             align: None,
         });
@@ -122,7 +116,7 @@ fn network_usage(sys: &mut sysinfo::System) -> StatusLine {
             (rx as f64) / 1000000.,
             (tx as f64) / 1000000.
         ),
-        color: OK_COLOR.to_string(),
+        color: Color::MAGENTA.to_string(),
         min_width: None,
         align: None,
     }
@@ -144,7 +138,7 @@ fn time() -> StatusLine {
                 false => "AM",
             },
         ),
-        color: "#d3869b".to_string(),
+        color: Color::CYAN.to_string(),
         min_width: None,
         align: Some(Align::Right),
     }
@@ -168,6 +162,13 @@ enum Align {
     Center,
 }
 
-const OK_COLOR: &str = "#a9b665";
-const WARN_COLOR: &str = "#d8a657";
-const ERR_COLOR: &str = "#ea6962";
+struct Color;
+
+impl Color {
+    const RED: &'static str = "#ea6962";
+    const GREEN: &'static str = "#a9b665";
+    const YELLOW: &'static str = "#d8a657";
+    const BLUE: &'static str = "#7daea3";
+    const MAGENTA: &'static str = "#d3869b";
+    const CYAN: &'static str = "#89b482";
+}
