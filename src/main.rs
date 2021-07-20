@@ -1,16 +1,17 @@
+use std::fmt::format;
 #[macro_use]
 use std::io::{self, Write};
-use std::cmp::Ordering;
 use std::thread;
 use std::time;
 
 use chrono::{Datelike, Timelike};
 use serde::{Deserialize, Serialize};
-use serde_json::Result;
-use sysinfo::{DiskExt, NetworkExt, ProcessExt, ProcessorExt, System, SystemExt};
+use sysinfo::{DiskExt, NetworkExt, ProcessorExt, SystemExt};
+use systemstat::Platform;
 
 fn main() {
     let mut system = sysinfo::System::new_all();
+    let mut sys_alt = systemstat::System::new();
     system.refresh_all();
 
     io::stdout().write_all(b"{ \"version\": 1 }[").unwrap();
@@ -21,11 +22,15 @@ fn main() {
         status_lines.push(memory_usage(&mut system));
         status_lines.append(&mut storage_info(&mut system));
         status_lines.push(network_usage(&mut system));
+        if let Some(battery) = battery(&mut sys_alt) {
+            status_lines.push(battery);
+        }
         status_lines.push(time());
         println!("{},", serde_json::to_string(&status_lines).unwrap());
 
         let waiting_time = time::Duration::from_secs(2);
         spin_sleep::sleep(waiting_time);
+        let so = 1;
     });
 
     handle.join().unwrap();
@@ -141,6 +146,49 @@ fn time() -> StatusLine {
         color: Color::CYAN.to_string(),
         min_width: None,
         align: Some(Align::Right),
+    }
+}
+
+fn battery(sys: &mut systemstat::System) -> Option<StatusLine> {
+    match sys.battery_life() {
+        Ok(battery) => {
+            let on_ac = match sys.on_ac_power() {
+                Ok(v) => v,
+                Err(_) => false,
+            };
+            return Some(StatusLine {
+                full_text: format!(
+                    "{} :  {:>5.1} %",
+                    battery_icon(battery.remaining_capacity, on_ac),
+                    battery.remaining_capacity * 100.0
+                ),
+                color: Color::GREEN.to_string(),
+                min_width: None,
+                align: None,
+            });
+        }
+        Err(_) => None,
+    }
+}
+
+fn battery_icon(capacity: f32, on_ac: bool) -> char {
+    if on_ac {
+        return '';
+    } else {
+        let step = (capacity * 10.0) as i8;
+        match step {
+            9 => '',
+            8 => '',
+            7 => '',
+            6 => '',
+            5 => '',
+            4 => '',
+            3 => '',
+            2 => '',
+            1 => '',
+            0 => '',
+            _ => '',
+        }
     }
 }
 
